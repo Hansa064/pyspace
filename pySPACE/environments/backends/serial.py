@@ -56,12 +56,12 @@ class SerialBackend(Backend):
         handler_args = {"host" : self.host, "port" : self.port}
         
         try:
-            process = self.current_operation.processes.get()
+            process = self.current_operation.processes.get(timeout=1)
         except KeyboardInterrupt:
             self._log(traceback.format_exc(), level=logging.CRITICAL)
             process = False
         # while there are Processes in the queue ...
-        while not process is False:
+        while process:
             process.prepare(pySPACE.configuration, handler_class, handler_args)
             # Execute process, update progress bar and get next queue-element
             try:
@@ -80,7 +80,7 @@ class SerialBackend(Backend):
             else:    
                 self.current_process += 1
                 self.progress_bar.update(self.current_process)
-                process = self.current_operation.processes.get()
+                process = self.current_operation.processes.get(timeout=1)
 
     def check_status(self):
         """

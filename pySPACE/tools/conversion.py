@@ -1,5 +1,5 @@
 """ Type conversion helper functions """
-
+import copy
 import warnings
 import yaml
 
@@ -95,4 +95,47 @@ def replace_parameters(node_chain_spec, parameter_setting):
                           "Replacing despite." % key)
         if "##" in node_chain_spec:
             node_chain_spec = node_chain_spec.replace("##", key)
+    return node_chain_spec
+
+
+def replace_in_list(list_, name, replacement):
+    for idx, item in enumerate(list_):
+        # Base case: item is not a structure
+        if item == name:
+            list_[idx] = replacement
+        # The item is itself a list, replace recursivly
+        if isinstance(item, list):
+            # Check recursively
+            list_[idx] = replace_in_list(item, name, replacement)
+        # The item is a dict, look for keys and values
+        elif isinstance(item, dict):
+            list_[idx] = replace_in_dict(item, name, replacement)
+    return list_
+
+
+def replace_in_dict(dict_, name, replacement):
+    new_dict = copy.copy(dict_)
+    for key, value in dict_.iteritems():
+        if key == name:
+            del new_dict[key]
+            new_dict[replacement] = value
+        if value == name:
+            new_dict[key] = replacement
+        if isinstance(value, list):
+            new_dict[key] = replace_in_list(value, name, replacement)
+        elif isinstance(value, dict):
+            new_dict[key] = replace_in_dict(value, name, replacement)
+    return new_dict
+
+
+def replace_parameters2(node_chain_spec, parameter_setting):
+    for key, value in parameter_setting.iteritems():
+        node_chain_spec = replace_in_list(node_chain_spec, "#"+key+"#", "##")
+        #chek for optimization and normal parameter rule
+        if not key.startswith("_") and not key.startswith("~"):
+            warnings.warn("The parameter %s is no regular parameter." +
+                          "Better use one starting with '_' or '~'. " +
+                          "Replacing despite." % key)
+        node_chain_spec = replace_in_list(node_chain_spec, key, value)
+        node_chain_spec = replace_in_list(node_chain_spec, "##", key)
     return node_chain_spec

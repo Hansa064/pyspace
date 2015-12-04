@@ -270,7 +270,8 @@ import pySPACE
 from pySPACE.missions.operations.base import Operation, Process
 from pySPACE.resources.dataset_defs.base import BaseDataset
 from pySPACE.tools.filesystem import create_directory
-from pySPACE.tools.conversion import extract_key_str, replace_parameters_and_convert
+from pySPACE.tools.conversion import extract_key_str, replace_parameters_and_convert, \
+    replace_parameters2
 from pySPACE.environments.chains.node_chain \
     import BenchmarkNodeChain, NodeChainFactory
 
@@ -315,7 +316,7 @@ class NodeChainOperation(Operation):
             self.compression = 8
 
     @classmethod
-    def create(cls, operation_spec, result_directory, debug=False, input_paths=[]):
+    def create(cls, operation_spec, result_directory, debug=True, input_paths=[]):
         """ A factory method that creates the processes which form an operation
         based on the  information given in the operation specification, *operation_spec*.
 
@@ -342,10 +343,10 @@ class NodeChainOperation(Operation):
         ## Use node_chain parameter if no templates are given ##
         if not operation_spec.has_key("templates"):
             if operation_spec.has_key("node_chain"):
-                operation_spec["templates"] = [
-                    extract_key_str(operation_spec["base_file"],
-                                    keyword="node_chain")]
-                operation_spec.pop("node_chain")
+                operation_spec["templates"] = [operation_spec.pop("node_chain")]
+#                    extract_key_str(operation_spec["base_file"],
+#                                    keyword="node_chain")]
+#                operation_spec.pop("node_chain")
             else:
                 warnings.warn("Specify parameter 'templates' or 'node_chain' in your operation spec!")
         elif operation_spec.has_key("node_chain"):
@@ -852,8 +853,9 @@ class NodeChainProcess(Process):
         self.min_log_level = min(console_log_level,file_log_level)
         pySPACE.configuration.min_log_level = self.min_log_level
         # Replace parameters in spec file
-        self.node_chain_spec = replace_parameters_and_convert(
-            self.node_chain_spec, self.parameter_setting)
+#        self.node_chain_spec = replace_parameters_and_convert(
+#            self.node_chain_spec, self.parameter_setting)
+        self.node_chain_spec = replace_parameters2(self.node_chain_spec, self.parameter_setting)
         # Create node chain
         self.node_chain = NodeChainFactory.flow_from_yaml(
             Flow_Class=BenchmarkNodeChain, flow_spec=self.node_chain_spec)

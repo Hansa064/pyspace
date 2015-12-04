@@ -336,6 +336,8 @@ class BaseNode(object):
         # call set functions for properties
         self.set_input_dim(input_dim)
         self.set_output_dim(output_dim)
+        with open("log.txt", "a") as file_:
+            file_.write("dtype: %s / type: %s\n" % (dtype, type(dtype)))
         self.set_dtype(dtype)
 
         # skip the training phase if the node is not trainable
@@ -520,7 +522,8 @@ class BaseNode(object):
                 types.append(cls.string_to_class(one_type))
             return types
 
-    def get_output_type(self, input_type, as_string=True):
+    @classmethod
+    def get_output_type(cls, input_type, as_string=True):
         """ Return output type depending on the *input_type*
 
         **Parameters**
@@ -547,7 +550,7 @@ class BaseNode(object):
         this method needs to be overwritten.
         Otherwise, a warning will occur.
         """
-        pack = self.__module__.split(".")[3:4]
+        pack = cls.__module__.split(".")[3:4]
         if "classification" in pack:
             result = "PredictionVector"
         elif "feature_generation" in pack:
@@ -561,7 +564,7 @@ class BaseNode(object):
         if as_string:
             return result
         else:
-            return self.string_to_class(result)
+            return cls.string_to_class(result)
 
     @staticmethod
     def string_to_class(string_encoding):
