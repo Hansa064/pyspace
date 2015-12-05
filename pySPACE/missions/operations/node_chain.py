@@ -316,7 +316,7 @@ class NodeChainOperation(Operation):
             self.compression = 8
 
     @classmethod
-    def create(cls, operation_spec, result_directory, debug=True, input_paths=[]):
+    def create(cls, operation_spec, result_directory, debug=False, input_paths=[]):
         """ A factory method that creates the processes which form an operation
         based on the  information given in the operation specification, *operation_spec*.
 

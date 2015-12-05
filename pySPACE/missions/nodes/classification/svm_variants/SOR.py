@@ -152,7 +152,8 @@ class SorSvmNode(RegularizedClassifierBase):
                  **kwargs):
         self.old_difference=numpy.inf
         # instead of lists, arrays are concatenated in training
-        super(SorSvmNode, self).__init__(use_list=False, **kwargs)
+        kwargs["use_list"] = False
+        super(SorSvmNode, self).__init__(**kwargs)
 
         if not(version in ["samples", "matrix"]):
             self._log("Version %s is not available. Default to 'samples'!"%version, level=logging.WARNING)
