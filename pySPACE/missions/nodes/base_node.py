@@ -336,8 +336,6 @@ class BaseNode(object):
         # call set functions for properties
         self.set_input_dim(input_dim)
         self.set_output_dim(output_dim)
-        with open("log.txt", "a") as file_:
-            file_.write("dtype: %s / type: %s\n" % (dtype, type(dtype)))
         self.set_dtype(dtype)
 
         # skip the training phase if the node is not trainable

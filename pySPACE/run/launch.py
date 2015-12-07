@@ -116,7 +116,7 @@ e.g.::
 
 """
 
-def run_operation(default_backend, operation):
+def run_operation(default_backend, operation, timeout=0):
     """ Runs the given operation on the backend
 
     Runs the given operation *operation* either on the backend specified in the
@@ -130,24 +130,18 @@ def run_operation(default_backend, operation):
         print(" --> For current operation using backend: \n\t\t %s."%str(backend))
     else:
         backend = default_backend
-
     # In case a operation_chain is executed the queue needs to be reset, since
     # the the first terminated operation cleans and closes the queue.
     if backend.__str__() == "MulticoreBackend":
         backend.reset_queue()
-    
     backend.stage_in(operation)
-
     backend.execute()
-
-    backend.retrieve()
-
-    backend.consolidate()
-
-    output_directory = operation.get_output_directory()
-
+    if backend.retrieve(timeout=timeout):
+        backend.consolidate()
+        output_directory = operation.get_output_directory()
+    else:
+        output_directory = None
     backend.cleanup()
-
     return output_directory
 
 

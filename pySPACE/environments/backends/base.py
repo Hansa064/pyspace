@@ -1,10 +1,12 @@
 """ Backend Base Class and Methods """
-
+import abc
 import socket
 import logging
 import logging.handlers
 import os
 import sys
+from multiprocessing.pool import IMapIterator
+
 
 file_path = os.path.dirname(os.path.abspath(__file__))
 pyspace_path = file_path[:file_path.rfind('pySPACE')-1]
@@ -20,7 +22,10 @@ class Backend(object):
     this interface in order to execute an operation
     on a specific modality. 
     """
-    STATES = set(["idling", "staged", "executing", "retrieved", "consolidated"])
+
+    __metaclass__ = abc.ABCMeta
+
+    STATES = {"idling", "staged", "executing", "retrieved", "consolidated"}
     
     def __init__(self):
         # Start logging
@@ -84,16 +89,21 @@ class Backend(object):
         self.sock.bind((self.SERVER_IP,0))
         self.sock.setblocking(0)
         self.SERVER_PORT = self.sock.getsockname()[1]
-    
+
+    @abc.abstractmethod
     def execute(self):
         """
         Executes all processes specified in the currently staged
         operation.
+
+        :param timeout: The timeout for this method, after which the execution is aborted
+        :type timeout: int
         """
         raise NotImplementedError(
                         "Method execute has not been implemented in subclass %s" 
                          % self.__class__.__name__)
-    
+
+    @abc.abstractmethod
     def check_status(self):
         """
         Returns a description of the current state of the operations
@@ -102,8 +112,9 @@ class Backend(object):
         raise NotImplementedError(
                    "Method check_status has not been implemented in subclass %s" 
                     % self.__class__.__name__)
-    
-    def retrieve(self):
+
+    @abc.abstractmethod
+    def retrieve(self, timeout=0):
         """
         Fetches the results of the operation's processes.
         
@@ -112,7 +123,8 @@ class Backend(object):
         raise NotImplementedError(
                        "Method retrieve has not been implemented in subclass %s" 
                        % self.__class__.__name__)
-    
+
+    @abc.abstractmethod
     def consolidate(self):
         """
         Consolidates the results of the single processes into a consistent result of the whole
@@ -121,7 +133,8 @@ class Backend(object):
         raise NotImplementedError(
                     "Method consolidate has not been implemented in subclass %s"
                     % self.__class__.__name__)
-    
+
+    @abc.abstractmethod
     def cleanup(self):
         """
         Remove the current operation and all potential results that
@@ -130,7 +143,7 @@ class Backend(object):
         raise NotImplementedError(
                         "Method cleanup has not been implemented in subclass %s" 
                         % self.__class__.__name__)
-        
+
     def get_result_directory(self):
         """ Return the result directory of the current operation (if any) """
         if self.current_operation == None:
