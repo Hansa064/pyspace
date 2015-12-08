@@ -1,5 +1,6 @@
 """ Type conversion helper functions """
 import copy
+import string
 import warnings
 import yaml
 
@@ -98,44 +99,49 @@ def replace_parameters(node_chain_spec, parameter_setting):
     return node_chain_spec
 
 
-def replace_in_list(list_, name, replacement):
-    for idx, item in enumerate(list_):
+def replace_in_list(list_, replacements):
+    new_list = []
+    for item in list_:
         # Base case: item is not a structure
-        if item == name:
-            list_[idx] = replacement
-        # The item is itself a list, replace recursivly
+        if isinstance(item, str):
+            item = string.Template(item).safe_substitute(**replacements)
+            try:
+                item = eval(item)
+            except Exception:
+                pass
+        # The item is itself a list, replace recursively
         if isinstance(item, list):
             # Check recursively
-            list_[idx] = replace_in_list(item, name, replacement)
+            item = replace_in_list(item, replacements)
         # The item is a dict, look for keys and values
         elif isinstance(item, dict):
-            list_[idx] = replace_in_dict(item, name, replacement)
-    return list_
+            item = replace_in_dict(item, replacements)
+        new_list.append(item)
+    return new_list
 
 
-def replace_in_dict(dict_, name, replacement):
-    new_dict = copy.copy(dict_)
+def replace_in_dict(dict_, replacements):
+    new_dict = {}
     for key, value in dict_.iteritems():
-        if key == name:
-            del new_dict[key]
-            new_dict[replacement] = value
-        if value == name:
-            new_dict[key] = replacement
+        key = string.Template(key).safe_substitute(**replacements)
+        try:
+            key = eval(key)
+        except Exception:
+            pass
+
         if isinstance(value, list):
-            new_dict[key] = replace_in_list(value, name, replacement)
+            value = replace_in_list(value, replacements)
         elif isinstance(value, dict):
-            new_dict[key] = replace_in_dict(value, name, replacement)
+            value = replace_in_dict(value, replacements)
+        elif isinstance(value, str):
+            value = string.Template(value).safe_substitute(**replacements)
+            try:
+                value = eval(value)
+            except Exception:
+                pass
+        new_dict[key] = value
     return new_dict
 
 
 def replace_parameters2(node_chain_spec, parameter_setting):
-    for key, value in parameter_setting.iteritems():
-        node_chain_spec = replace_in_list(node_chain_spec, "#"+key+"#", "##")
-        #chek for optimization and normal parameter rule
-        if not key.startswith("_") and not key.startswith("~"):
-            warnings.warn("The parameter %s is no regular parameter." +
-                          "Better use one starting with '_' or '~'. " +
-                          "Replacing despite." % key)
-        node_chain_spec = replace_in_list(node_chain_spec, key, value)
-        node_chain_spec = replace_in_list(node_chain_spec, "##", key)
-    return node_chain_spec
+    return replace_in_list(node_chain_spec, parameter_setting)
