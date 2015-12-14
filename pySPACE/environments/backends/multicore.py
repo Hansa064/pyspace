@@ -4,15 +4,15 @@ This backend is based on the multiprocessing package and should work on every
 multicore system without additional settings even on virtual machines.
 """
 
-import os
-import time
-import multiprocessing
+import cPickle
 import logging
 import logging.handlers
-import threading
-import socket
+import multiprocessing
+import os
 import select
-import cPickle
+import socket
+import threading
+import time
 import warnings
 
 import pySPACE
@@ -66,7 +66,7 @@ class MulticoreBackend(Backend):
         self._log("Operation - staged")
         self.state = "staged"
         
-    def execute(self, timeout=1):
+    def execute(self, timeout=None):
         """ Execute all processes specified in the currently staged operation """
         # This blocks until all results are available, hence this call is synchronize
         assert(self.state == "staged")
@@ -83,11 +83,19 @@ class MulticoreBackend(Backend):
         self.listener = LocalComHandler(self.sock)
         self.listener.start()
 
-        # Run the processes
-        for process in iter(self.current_operation.processes.get(timeout=timeout), False):
-            process.prepare(pySPACE.configuration, handler_class, handler_args, backend_com)
-            self.result_handlers.append(
-                self.pool.apply_async(process, callback=self.dequeue_process))
+        try:
+            process = self.current_operation.processes.get(timeout=timeout)
+        except KeyboardInterrupt:
+            process = False
+        # Until not all Processes have been created prepare all processes
+        # from the queue for remote execution and execute them
+        while not process is False:
+            process.prepare(pySPACE.configuration, handler_class, handler_args,
+                            backend_com)
+            # Execute all functions in the process pool but return immediately
+            self.pool.apply_async(process, callback=self.dequeue_process)
+            process = self.current_operation.processes.get(timeout=timeout)
+            time.sleep(0.1)
 
     def dequeue_process(self, result):
         """ Callback function for finished processes """

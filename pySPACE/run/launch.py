@@ -43,14 +43,15 @@ library folder. (partial) Copy from the documentation:
               the GraphViz package needs to be installed.
 """
 # general imports
+import cProfile
+import logging
 import os
 import shutil
 import sys
-import logging
-from optparse import OptionParser
-import cProfile
-import yaml
 import warnings
+from optparse import OptionParser
+
+import yaml
 
 # adding pySPACE to system path for import
 file_path = os.path.dirname(os.path.realpath(__file__))
@@ -116,7 +117,7 @@ e.g.::
 
 """
 
-def run_operation(default_backend, operation, timeout=0):
+def run_operation(default_backend, operation, timeout=None):
     """ Runs the given operation on the backend
 
     Runs the given operation *operation* either on the backend specified in the
